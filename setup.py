@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     name='ofReader',
     packages=find_packages(include=['ofReader']),
-    version='0.1.0',
+    version='0.2.0',
     description='Library to read OpenFOAM data into python for post processing',
     author='Jan Wilhelm Gaertner',
     license='GNUv3',

@@ -222,10 +222,18 @@ def readFaceCompactList(filePath,fileFormat : ofFileFormat, binaryDataPos,nValue
         # Read now all faces
         filePathParts = filePath.split('/')
         print("Reading ",filePathParts[-1])
-        for i in tqdm(range(nValues-1)):
-            nLabels = int(startIndices[i+1]-startIndices[i])
-            faces[i] = np.frombuffer(binaryFp.read(nLabels*fileFormat.labelByteSize),dtype=fileFormat.labelDataType,count=nLabels)
-
+        nFaces = nValues -1
+        facesToRead = min(nFaces,500)
+        readFaces = 0
+        for i in tqdm(range(int(math.ceil(nFaces/facesToRead)))):
+            facesToRead = min(facesToRead,nFaces-readFaces)
+            nLabels = int(startIndices[readFaces+facesToRead]-startIndices[readFaces])
+            buffer = np.frombuffer(binaryFp.read(nLabels*fileFormat.labelByteSize),dtype=fileFormat.labelDataType,count=nLabels)
+            for j in range(readFaces,readFaces+facesToRead):
+                startIndexOfBuffer = startIndices[j] - startIndices[readFaces]
+                stopIndexOfBuffer = startIndices[j+1] - startIndices[readFaces]
+                faces[j] = np.array(buffer[startIndexOfBuffer:stopIndexOfBuffer])
+            readFaces = readFaces+facesToRead
     return faces
 
 def readLabelField(binaryFp, fileFormat : ofFileFormat, nValues : int):

@@ -20,6 +20,9 @@ class fvMesh:
         for cellIndex in self._owner:
             if cellIndex > nCells:
                 nCells = cellIndex
+        for cellIndex in self._neighbor:
+            if cellIndex > nCells:
+                nCells = cellIndex
         # As it is zero based add one more entry
         nCells = nCells +1
 
@@ -32,8 +35,6 @@ class fvMesh:
 
         print("Add neighbor faces...")
         for i in tqdm(range(len(self._neighbor))):
-            if self._neighbor[i] >= len(self._cells):
-                print("Error: try to access out of bounds: ",self._neighbor[i], " with max length: ", len(self._cells))
             self._cells[self._neighbor[i]].addFaceIndex(i)
     
     def cells(self):
