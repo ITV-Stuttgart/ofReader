@@ -1,14 +1,14 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  2312                                  |
+|  \\    /   O peration     | Version:  2306                                  |
 |   \\  /    A nd           | Website:  www.openfoam.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
     version     2.0;
-    format      ascii;
+    format      binary;
     arch        "LSB;label=32;scalar=64";
     class       polyBoundaryMesh;
     location    "constant/polyMesh";
@@ -22,8 +22,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          441;
-        startFace       27741;
+        nFaces          484;
+        startFace       30492;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicRight;
@@ -32,8 +32,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          441;
-        startFace       28182;
+        nFaces          484;
+        startFace       30976;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicLeft;
@@ -42,8 +42,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          462;
-        startFace       28623;
+        nFaces          484;
+        startFace       31460;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicBottom;
@@ -52,8 +52,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          462;
-        startFace       29085;
+        nFaces          484;
+        startFace       31944;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicTop;
@@ -62,8 +62,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          462;
-        startFace       29547;
+        nFaces          484;
+        startFace       32428;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicBack;
@@ -72,8 +72,8 @@ FoamFile
     {
         type            cyclic;
         inGroups        1(cyclic);
-        nFaces          462;
-        startFace       30009;
+        nFaces          484;
+        startFace       32912;
         matchTolerance  0.0001;
         transform       unknown;
         neighbourPatch  cyclicFront;
