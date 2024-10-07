@@ -1,4 +1,4 @@
 #!/bin/bash
 
 python3 setup.py bdist_wheel
-pip3 install ${@} dist/ofReader-0.2.0-py3-none-any.whl
+pip3 install ${@} dist/ofReader-0.2.1-py3-none-any.whl
