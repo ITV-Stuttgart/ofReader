@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import math
-
+import copy
 
 
 class circAverageReader:
@@ -51,10 +51,39 @@ class circAverageReader:
     def _magnitude(self,vector):
         return math.sqrt(sum(pow(element, 2) for element in vector))
     
-            
+
+    def _triangulte(self):
+                # List of triangles, each tri is a list of indices in the X,Y array
+        tri = []
+        # List to store the value in each tri
+        triValue = []
+        # Loop over all faces
+        i=0
+        for face in self._faces:
+            if len(face) == 3:
+                tri.append(np.array(face))
+                triValue.append(self._values[i])
+            if len(face) == 4:
+                face1 = [face[0],face[1],face[2]]
+                face2 = [face[2],face[3],face[0]]
+                tri.append(np.array(face1,dtype=np.int32))
+                triValue.append(self._values[i])
+                tri.append(np.array(face2,dtype=np.int32))
+                triValue.append(self._values[i])
+            i = i +1
+        return tri,triValue
+
+
     # =======================================================================
 
-    def __init__(self,fname):
+    def __init__(self):
+        self._fname = "None"
+        self._pos = np.zeros(1)
+        self._values = np.zeros(1)
+        self._faces = []
+        self._points = np.zeros(1)
+    
+    def readFromFile(self,fname):
         self._fname = fname
 
         # readData contains list of values, cell coordinates, faces, and points
@@ -102,8 +131,7 @@ class circAverageReader:
 
         # points
         self._points = np.array(readData[3])
-        
-    
+
     def __str__(self):
         return f"Eulerian data from file: ", self._fname
     
@@ -149,26 +177,55 @@ class circAverageReader:
             if key == "scaleCoordinates":
                 scaleCoordinates = value
 
-        # List of triangles, each tri is a list of indices in the X,Y array
-        tri = []
-        # List to store the value in each tri
-        triValue = []
-        # Loop over all faces
-        i=0
-        for face in self._faces:
-            if len(face) == 3:
-                tri.append(np.array(face))
-                triValue.append(self._values[i])
-            if len(face) == 4:
-                face1 = [face[0],face[1],face[2]]
-                face2 = [face[2],face[3],face[0]]
-                tri.append(np.array(face1,dtype=np.int32))
-                triValue.append(self._values[i])
-                tri.append(np.array(face2,dtype=np.int32))
-                triValue.append(self._values[i])
-            i = i +1
+        tri,triValue = self._triangulte()
 
-        return ax.tripcolor(self._points[:,0]*scaleCoordinates,self._points[:,1]*scaleCoordinates,triValue,triangles=tri) 
+        return ax.tripcolor(self._points[:,0]*scaleCoordinates,self._points[:,1]*scaleCoordinates,triValue,triangles=tri,**kwargs) 
+
+
+    def __mul__(self,other):
+        """Multiply with another circAverageReader of the same type or a 
+           scalar
+        """
+        # Create a copy of the current reader
+        copyReader = circAverageReader()
+        copyReader._faces = copy.deepcopy(self._faces)
+        copyReader._points = copy.deepcopy(self._points)
+        copyReader._pos = copy.deepcopy(self._pos)
+
+        if isinstance(other,(int,float)):
+            copyReader._values = other*self._values
+        else:
+            copyReader._values = self._values*other._values
+        
+        return copyReader
+
+    def __rmul__(self,other):
+        # Create a copy of the current reader
+        copyReader = circAverageReader()
+        copyReader._faces = copy.deepcopy(self._faces)
+        copyReader._points = copy.deepcopy(self._points)
+        copyReader._pos = copy.deepcopy(self._pos)
+
+        if isinstance(other,(int,float)):
+            copyReader._values = other*self._values
+        else:
+            copyReader._values = self._values*other._values
+        
+        return copyReader
+
+    def __truediv__(self,other):
+        # Create a copy of the current reader
+        copyReader = circAverageReader()
+        copyReader._faces = copy.deepcopy(self._faces)
+        copyReader._points = copy.deepcopy(self._points)
+        copyReader._pos = copy.deepcopy(self._pos)
+
+        if isinstance(other,(int,float)):
+            copyReader._values = self._values/other
+        else:
+            copyReader._values = self._values/other._values
+        
+        return copyReader
 
 
     @property
