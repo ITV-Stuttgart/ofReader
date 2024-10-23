@@ -13,6 +13,8 @@ class fvMesh:
         self._owner  = readOpenFOAMFile(casePath + '/constant/polyMesh/owner')
         self._neighbor = readOpenFOAMFile(casePath + '/constant/polyMesh/neighbour')
         
+        self._nCells = 0
+
         self._centers = []
         self._volumes = []
 
@@ -26,9 +28,12 @@ class fvMesh:
                 nCells = cellIndex
         # As it is zero based add one more entry
         nCells = nCells +1
+        self._nCells = nCells
 
         print("Create cells in mesh...")
-        self._cells = [ fvmCell() for _ in range(nCells) ]
+        self._cells = np.empty(nCells,dtype=fvmCell)
+        for i in range(len(self._cells)):
+            self._cells[i] = fvmCell()
 
         print("Add owner faces...")
         for i in tqdm(range(len(self._owner))):
@@ -37,9 +42,6 @@ class fvMesh:
         print("Add neighbor faces...")
         for i in tqdm(range(len(self._neighbor))):
             self._cells[self._neighbor[i]].addFaceIndex(i)
-    
-    def cells(self):
-        return self._cells
     
     def centers(self):
         if len(self._centers) == 0:
@@ -56,6 +58,16 @@ class fvMesh:
             for i in range(len(self._cells)):
                 self._volumes[i] = self._cells[i].volume(self._points,self._faces)
         return self._volumes
+    
+    @property
+    def nCells(self):
+        return self._nCells
+    
+    @property
+    def cells(self):
+        return self._cells
+
+
 
 class fvmCell:
     """Container to store the information of a cell and function to 

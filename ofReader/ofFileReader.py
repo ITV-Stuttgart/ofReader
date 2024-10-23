@@ -12,6 +12,7 @@ the mesh the class fvMesh is provided.
 import numpy as np
 from tqdm import tqdm
 import math
+import sys
 
 # ==============================================================================
 # Helper Classes 
@@ -33,8 +34,19 @@ class ofFileFormat:
     _labelDataType : np.int32
     _scalarDataType : np.float64
 
-    def __init__(self,filePath):
+
+    def __init__(self):
+        self._format = "ASCII"
         self._type = "undefined"
+        # Default label size
+        self.labelSize = 32
+        self.scalarSize = 64
+
+    def readFile(self,filePath):
+        self._type = "undefined"
+        # Default label size
+        self.labelSize = 32
+        self.scalarSize = 64
         with open(filePath, encoding='utf-8', errors='ignore') as fp:
             for line in fp:
                 # Find the keyword format
@@ -50,7 +62,7 @@ class ofFileFormat:
                     # Read the keyword
                     subStr = line.split()
                     subStr[1]=subStr[1].rstrip(';')
-                    if subStr[1] == "Cloud<passivePositionParticle>":
+                    if subStr[1] == "Cloud<passivePositionParticle>" or subStr[1] == "Cloud<passiveParticle>":
                         self.type = "particlePosition"
                     elif subStr[1] == "scalarField" or subStr[1] == "volScalarField":
                         self.type = "scalar"
@@ -152,7 +164,8 @@ class ofFileFormat:
 # Helper Functions 
 # ==============================================================================
 def readOpenFOAMFile(filePath):
-    fileFormat = ofFileFormat(filePath)
+    fileFormat = ofFileFormat()
+    fileFormat.readFile(filePath)
 
     data = np.zeros(1)
     if fileFormat.format == "ASCII":
@@ -161,7 +174,7 @@ def readOpenFOAMFile(filePath):
         data = readBinaryDataBlock(filePath,fileFormat)
     else:
         print("File format is undefined")
-        exit(1)
+        sys.exit("Error reading: "+filePath)
     return data
 
 
@@ -212,7 +225,7 @@ def readFaceCompactList(filePath,fileFormat : ofFileFormat, binaryDataPos,nValue
                 break
 
     print("Allocate space for ",nValues," faces...")
-    faces = [ np.zeros(1,dtype=int) for _ in range(nValues-1) ]
+    faces = np.empty((nValues-1),dtype=object)
     print("done")
     with open(filePath, mode='rb') as binaryFp:
         # Jump to pos
@@ -390,9 +403,29 @@ def readFaceList(asciiFp, fileFormat : ofFileFormat, nValues : int):
         faces[i] = face
     return faces
 
-def readParticlePositionASCII(binaryFp, fileFormat : ofFileFormat, nValues : int):
-    print("Not defined")
-    exit()
+def readParticlePositionASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
+    data = np.zeros((nValues,3),dtype=fileFormat.scalarDataType)
+    # Find opening bracket
+    while True:
+        line = asciiFp.readline()
+        line.rstrip()
+        if not line or '(' in line:
+            break
+
+    for i in range(nValues):
+        line = asciiFp.readline()
+        line.rstrip()
+        if not line:
+            break
+        # Break line in parts
+        subStr = line.split('(')
+        subStr = subStr[1].split(')')
+        subStr = subStr[0].split()
+        data[i][0] = fileFormat.scalarDataType(subStr[0])
+        data[i][1] = fileFormat.scalarDataType(subStr[1])
+        data[i][2] = fileFormat.scalarDataType(subStr[2])
+
+    return data
 
 
 
@@ -446,7 +479,7 @@ def readBinaryDataBlock(filePath,fileFormat : ofFileFormat):
                 data = readParticlePosition(binaryFp,fileFormat,nValues)
             else:
                 print("Unknown data type: ",fileFormat.type)
-                exit()
+                sys.exit("Error reading: "+filePath)
     return data
 
 
@@ -491,7 +524,7 @@ def readASCIIDataBlock(filePath,fileFormat : ofFileFormat):
             data = readParticlePositionASCII(fp,fileFormat,nValues)
         else:
             print("Unknown data type: ",fileFormat.type)
-            exit()
+            sys.exit("Error reading: "+filePath)
     return data
                 
 
