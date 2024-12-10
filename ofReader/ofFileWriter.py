@@ -51,12 +51,12 @@ def _writeASCIIDataBlock(filePath,fileFormat : ofFileFormat,data):
         f.write(f"{len(data):d}\n")
         f.write("(\n")
         for i in range(len(data)):
-            f.write(f"({data[i][0]:f} {data[i][1]:f} {data[i][2]:f})\n")
+            f.write(f"({data[i][0]:g} {data[i][1]:g} {data[i][2]:g})\n")
         f.write(");\n")
     if fileFormat.type == "scalarField" or fileFormat.type == "volScalarField":
         f.write("internalField   nonuniform List<scalar>\n")
         f.write(f"{len(data):d}\n")
         f.write("(\n")
         for i in range(len(data)):
-            f.write(f"{data[i]:f}\n")
+            f.write(f"{data[i]:g}\n")
         f.write(");\n")

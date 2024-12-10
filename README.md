@@ -50,6 +50,34 @@ mesh = fvMesh(pathToCase)
 center = mesh.centers()
 ```
 
+## Write OpenFOAM File
+
+To write a data block as an OpenFOAM file, a file header and boundaries have
+to be defined.
+
+```python
+# First create an OpenFOAM file header
+ofFileFormat header
+# Store a scalar field
+header.type = "scalar"
+
+# Create a list of boundaries
+# Currently still WIP, best to use empty
+ofBoundaryData boundary
+boundary.addPatch('inlet','empty')
+
+# dimensions of the field in OpenFOAM format
+fieldDimensions = [0,0,0,0,0,0,0]
+
+# Write OpenFOAM file
+writeOpenFOAMFile('Path/to/file',
+    header,
+    dataBlock,
+    boundary,
+    fieldDimensions)
+
+
+```
 
 ## Tests
 
