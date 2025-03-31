@@ -214,11 +214,23 @@ class MapParticleToPlane:
         vMin = np.min(self._triValues)
         vMax = np.max(self._triValues)
 
+        
+        scaleCoordinates = 1.0  # To scale the coordinates
+        scale = 1.0             # To scale the values
+
         if 'vmin' in kwargs:
             vMin = kwargs['vmin']
 
         if 'vmax' in kwargs:
             vMax = kwargs['vmax']
+        
+        if 'scale' in kwargs:
+            scale = kwargs['scale']
+            kwargs.pop('scale')
+
+        if 'scaleCoordinates' in kwargs:
+            scaleCoordinates = kwargs['scaleCoordinates']
+            kwargs.pop('scaleCoordinates')
 
         if 'transparent' in kwargs:
             if kwargs['transparent']==True:
@@ -227,9 +239,9 @@ class MapParticleToPlane:
             kwargs.pop('transparent')
 
         return ax.tripcolor(
-            self._triPoints[:,0],
-            self._triPoints[:,1],
-            self._triValues,
+            self._triPoints[:,0]*scaleCoordinates,
+            self._triPoints[:,1]*scaleCoordinates,
+            self._triValues*scale,
             triangles=self._tri,
             alpha=alpha,
             **kwargs) 
