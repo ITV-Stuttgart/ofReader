@@ -4,11 +4,14 @@ import math
 import copy
 
 
-class circAverageReader:
+class samplePlaneReader:
     """
     Load and processes files written by the circAverage tool:
     https://github.tik.uni-stuttgart.de/ITV/circAverage-v2012.git
-
+    Or any other tool that uses the samplePlane object. Note that
+    here we refer to the own samplePlane not OpenFOAM's native 
+    sampledPlane!
+    
     Access coordinates with pos function and values with values
     To plot data along a line defined by two points 
     p1 = [ax,rad] and p2 = [ax2,rad2] with each an axial and radial
@@ -52,26 +55,25 @@ class circAverageReader:
         return math.sqrt(sum(pow(element, 2) for element in vector))
     
 
-    def _triangulte(self):
-                # List of triangles, each tri is a list of indices in the X,Y array
-        tri = []
-        # List to store the value in each tri
-        triValue = []
-        # Loop over all faces
-        i=0
-        for face in self._faces:
-            if len(face) == 3:
-                tri.append(np.array(face))
-                triValue.append(self._values[i])
-            if len(face) == 4:
-                face1 = [face[0],face[1],face[2]]
-                face2 = [face[2],face[3],face[0]]
-                tri.append(np.array(face1,dtype=np.int32))
-                triValue.append(self._values[i])
-                tri.append(np.array(face2,dtype=np.int32))
-                triValue.append(self._values[i])
-            i = i +1
-        return tri,triValue
+    def _triangulate(self):
+        
+        if not self._tri:
+            # Loop over all faces
+            i=0
+            for face in self._faces:
+                if len(face) == 3:
+                    self._tri.append(np.array(face))
+                    self._triValue.append(self._values[i])
+                if len(face) == 4:
+                    face1 = [face[0],face[1],face[2]]
+                    face2 = [face[2],face[3],face[0]]
+                    self._tri.append(np.array(face1,dtype=np.int32))
+                    self._triValue.append(self._values[i])
+                    self._tri.append(np.array(face2,dtype=np.int32))
+                    self._triValue.append(self._values[i])
+                i = i +1
+        
+        return self._tri, self._triValue
 
 
     # =======================================================================
@@ -81,7 +83,10 @@ class circAverageReader:
         self._pos = np.zeros(1)
         self._values = np.zeros(1)
         self._faces = []
-        self._points = np.zeros(1)
+        self._triPoints = np.zeros(1)
+        
+        self._tri = []      # List of triangles, each tri is a list of indices in the X,Y array
+        self._triValue = [] # List to store the value in each tri
     
     def readFromFile(self,fname):
         self._fname = fname
@@ -130,7 +135,9 @@ class circAverageReader:
         self._faces = readData[2]
 
         # points
-        self._points = np.array(readData[3])
+        self._triPoints = np.array(readData[3])
+
+        self._tri, self._triValue = self._triangulate()
 
     def __str__(self):
         return f"Eulerian data from file: ", self._fname
@@ -164,22 +171,28 @@ class circAverageReader:
         """Plots the result in a matplotlib.pyplot.pcolor plot
         
         Input:
-        ======
-            ax : Matplotlib axis to plot the data in
+        ------
+            ax : axis
+                Matplotlib axis to plot the data in
 
-            scaleCoordinates : Optional argument to scale the coordinates of the 
+            scaleCoordinates : Tuple (xScale,yScale)
+                Optional argument to scale the coordinates of the 
                 x and y axis.
 
-            **kwargs : Additional arguments that can be used with pcolor
+            **kwargs : 
+                Additional arguments that can be used with pcolor
         """
-        scaleCoordinates = [1,1]
-        for key, value in kwargs.items():
-            if key == "scaleCoordinates":
-                scaleCoordinates = value
-
-        tri,triValue = self._triangulte()
-
-        return ax.tripcolor(self._points[:,0]*scaleCoordinates,self._points[:,1]*scaleCoordinates,triValue,triangles=tri,**kwargs) 
+        scaleCoordinates = (1,1)
+        if 'scaleCoordinates' in kwargs:
+            scaleCoordinates = kwargs['scaleCoordinates']
+            kwargs.pop('scaleCoordinates')
+        
+        return ax.tripcolor(
+            self._triPoints[:,0]*scaleCoordinates[0],
+            self._triPoints[:,1]*scaleCoordinates[1],
+            self._triValue,
+            triangles=self._tri,
+            **kwargs) 
 
 
     def __mul__(self,other):
@@ -187,9 +200,9 @@ class circAverageReader:
            scalar
         """
         # Create a copy of the current reader
-        copyReader = circAverageReader()
+        copyReader = samplePlaneReader()
         copyReader._faces = copy.deepcopy(self._faces)
-        copyReader._points = copy.deepcopy(self._points)
+        copyReader._triPoints = copy.deepcopy(self._triPoints)
         copyReader._pos = copy.deepcopy(self._pos)
 
         if isinstance(other,(int,float)):
@@ -201,9 +214,9 @@ class circAverageReader:
 
     def __rmul__(self,other):
         # Create a copy of the current reader
-        copyReader = circAverageReader()
+        copyReader = samplePlaneReader()
         copyReader._faces = copy.deepcopy(self._faces)
-        copyReader._points = copy.deepcopy(self._points)
+        copyReader._triPoints = copy.deepcopy(self._triPoints)
         copyReader._pos = copy.deepcopy(self._pos)
 
         if isinstance(other,(int,float)):
@@ -215,9 +228,9 @@ class circAverageReader:
 
     def __truediv__(self,other):
         # Create a copy of the current reader
-        copyReader = circAverageReader()
+        copyReader = samplePlaneReader()
         copyReader._faces = copy.deepcopy(self._faces)
-        copyReader._points = copy.deepcopy(self._points)
+        copyReader._triPoints = copy.deepcopy(self._triPoints)
         copyReader._pos = copy.deepcopy(self._pos)
 
         if isinstance(other,(int,float)):
@@ -238,7 +251,7 @@ class circAverageReader:
     
     @property
     def points(self):
-        return self._points
+        return self._triPoints
     
     @property
     def faces(self):

@@ -79,6 +79,11 @@ writeOpenFOAMFile('Path/to/file',
 
 ```
 
+## Sample Particle Data to Plane
+
+See the mapParticleToPlane object!
+--> README still has to be generated
+
 ## Tests
 
 To execute the tests:
