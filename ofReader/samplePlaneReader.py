@@ -167,7 +167,7 @@ class samplePlaneReader:
         return x,v
     
 
-    def pcolor(self,ax,**kwargs):
+    def plot(self,ax,**kwargs):
         """Plots the result in a matplotlib.pyplot.pcolor plot
         
         Input:
@@ -175,7 +175,7 @@ class samplePlaneReader:
             ax : axis
                 Matplotlib axis to plot the data in
 
-            scaleCoordinates : Tuple (xScale,yScale)
+            scaleCoordinates : float to scale the x and y coordinates
                 Optional argument to scale the coordinates of the 
                 x and y axis.
 
@@ -188,8 +188,8 @@ class samplePlaneReader:
             kwargs.pop('scaleCoordinates')
         
         return ax.tripcolor(
-            self._triPoints[:,0]*scaleCoordinates[0],
-            self._triPoints[:,1]*scaleCoordinates[1],
+            self._triPoints[:,0]*scaleCoordinates,
+            self._triPoints[:,1]*scaleCoordinates,
             self._triValue,
             triangles=self._tri,
             **kwargs) 

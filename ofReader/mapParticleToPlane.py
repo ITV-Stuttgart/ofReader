@@ -5,6 +5,7 @@ from scipy.interpolate import LinearNDInterpolator
 from ofReader.samplePlaneReader import samplePlaneReader
 from ofReader.triangleInterp import TriangleInterp
 import math
+import pyvista as pv
 
 
 class MapParticleToPlane:
@@ -161,6 +162,43 @@ class MapParticleToPlane:
         self._triInterp = TriangleInterp(self._triPoints,self._tri)
         self._triFinder = self._triInterp.get_trifinder()
         
+    
+    def writeVTKFile(self,filename):
+        """Write the plane as a vtk file
+        
+        Input:
+        ------
+            filename : string
+            Path and filename to write the vtu file
+
+        Usage:
+        ------
+
+            plane = MapParticleToPlane()    # Generate the plane object
+            plane.createPlane()             # Create a plane, see for options
+            plane.map(field)                # map a field to the plane
+            plane.writeVTKFile('/home/Docs/myFile.vtu')
+        """
+        
+        # Get all triangles
+        triList = self._tri
+        triPoints = self._triPoints
+        cell_points = np.hstack([triPoints, np.zeros((triPoints.shape[0], 1))])
+
+        # Create cells from the triangles for the vtk file
+        cells = []
+        cell_type = []
+        for tri in triList:
+            cells.append(len(tri))
+            # Cell type is triangle
+            cell_type.append(5)
+            for i in range(len(tri)):
+                cells.append(tri[i])
+
+        mesh = pv.UnstructuredGrid(cells,cell_type,cell_points)
+        mesh.cell_data["values"] = self._triValues
+
+        mesh.save(filename)
         
         
     def map(self,pos,val):

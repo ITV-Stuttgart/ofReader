@@ -68,7 +68,7 @@ class ofFileFormat:
                         self.type = "scalar"
                     elif subStr[1] == "vectorField" or subStr[1] == "volVectorField":
                         self.type = "vectorField"
-                    elif subStr[1] == "labelList":
+                    elif subStr[1] == "labelList" or "labelField":
                         self.type = "label"
                     elif subStr[1] == "faceCompactList":
                         self.type = "faceCompactList"
