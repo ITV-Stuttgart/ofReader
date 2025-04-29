@@ -221,10 +221,40 @@ class MapParticleToPlane:
         self._triInterp.setField(self._triValues)
 
     def plotOverLine(self,ax,point1,point2,nPoints=100,**kwargs):
+        """Plot results along a sample line of the plane
+        
+        Create the line with two points given in the plane coordinate system
+        of x,y corrdinates. 
+
+        Options:
+        --------
+
+        nPoints : int
+            Number of sample points along the sample line
+
+        scaleCoordinates : float
+            Scale the coordinates of the sampled line for visualization
+        
+        scale : float
+            Scale the results for visualization in the plot, e.g.,
+            map.plot(ax,[0,0],[0,1],scale=1E+6) to scale sampled diameters to 
+            micro meter
+        """
         # Make point into a numpy array
         point1 = np.array(point1)
         point2 = np.array(point2)
-           
+        
+        scaleCoordinates = 1.0  # To scale the coordinates
+        scale = 1.0             # To scale the values
+
+        if 'scale' in kwargs:
+            scale = kwargs['scale']
+            kwargs.pop('scale')
+
+        if 'scaleCoordinates' in kwargs:
+            scaleCoordinates = kwargs['scaleCoordinates']
+            kwargs.pop('scaleCoordinates')
+
         # create points to interpolate to
         t = np.linspace(0.0,1.0,nPoints)
         q = np.empty((len(t),2))
@@ -238,7 +268,7 @@ class MapParticleToPlane:
         for i in range(len(v)):
             v[i] = self._triInterp(*q[i])
 
-        return ax.plot(x,v,**kwargs)
+        return ax.plot(x*scaleCoordinates,v*scale,**kwargs)
 
     def plot(self,ax,**kwargs):
         """Plot the mapped data as a pcolor plot and return the axis.
@@ -272,7 +302,7 @@ class MapParticleToPlane:
 
         if 'transparent' in kwargs:
             if kwargs['transparent']==True:
-                alpha = (np.array(self._triValues)-vMin)/(vMax-vMin)
+                alpha = (np.array(self._triValues)*scale-vMin)/(vMax-vMin)
                 alpha = np.clip(alpha,0,1)
             kwargs.pop('transparent')
 
