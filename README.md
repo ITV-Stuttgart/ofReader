@@ -1,15 +1,11 @@
-# ofRader - Python Library for OpenFOAM
+# ofReader - Python Library for OpenFOAM
 
-Python functions to read OpenFOAM data for postprocessing.
+Python functions to read OpenFOAM data for post processing.
 
 ## Installation
 
-Execute the following within this directory:
-
-```bash
-python setup.py bdist_wheel
-pip install dist/ofReader-0.1.0-py3-none-any.whl
-```
+To install the library with the wheel distribution tool using
+the provided `Install.sh` script.
 
 ## Usage
 
@@ -41,7 +37,7 @@ lagrangianData = readOpenFOAMFile(pathToFile)
 ```
 
 For the Eulerian fields the position of the entries is stored in the fvMesh 
-object. Therefore, a fvMesh python class is provided which can read the 
+object. Therefore, an fvMesh python class is provided which can read the 
 mesh and provides an interface for the cells:
 ```python
 from ofReader.fvMesh import fvMesh
@@ -49,6 +45,11 @@ mesh = fvMesh(pathToCase)
 # Get cell center points as list of arrays
 center = mesh.centers()
 ```
+> [!TIP]
+> However, the class is very slow and time consuming, if only the position of the
+> cells is of interest use the built in `postProcess -func writeCellCentres` function of 
+> OpenFOAM.
+
 
 ## Write OpenFOAM File
 
@@ -75,14 +76,38 @@ writeOpenFOAMFile('Path/to/file',
     dataBlock,
     boundary,
     fieldDimensions)
-
-
 ```
+
 
 ## Sample Particle Data to Plane
 
-See the mapParticleToPlane object!
---> README still has to be generated
+In Lagrangian simulations, a common use case is to map particle data onto a plane — particularly useful for circumferential or axisymmetric setups. For this purpose, the `MapParticleToPlane` class is provided.
+
+This class allows you to:
+
+- Define an arbitrary sampling plane via a point and normal vector.
+- Project particle data (e.g., position, velocity, diameter) onto that plane.
+- Export the sampled data for visualization or further analysis.
+
+### Basic Usage
+
+```python
+from ofReader.mapParticleToPlane import MapParticleToPlane
+
+mapper = MapParticleToPlane(
+    path_to_case="path/to/case",
+    time="latestTime",
+    plane_origin=[0.0, 0.0, 0.0],
+    plane_normal=[0.0, 0.0, 1.0]
+)
+
+sampled_data = mapper.sample()
+```
+
+The returned sampled_data is a dictionary containing the projected particle properties.
+
+> [!NOTE]
+> This class is particularly useful for post-processing particle-laden flows simulated with OpenFOAM.
 
 ## Tests
 
