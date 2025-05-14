@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "ofReader: A Python Tool for Post-Processing Lagrangian Particle Data from OpenFOAM"
+authors:
+  - given-names: Jan Wilhelm
+    family-names: Gärtner
+    email: jan-wilhelm.gaertner@irst.uni-stuttgart.de
+    affiliation: University of Stuttgart
+    orcid: https://orcid.org/0000-0002-1718-7735
+date-released: 2025-05-14
+version: 0.1.0
+repository-code: https://github.com/ITV-Stuttgart/ofReader
+license: GPLv3
+keywords:
+  - OpenFOAM
+  - Lagrangian
+  - Particle tracking
+  - Python
+  - CFD
+
+
