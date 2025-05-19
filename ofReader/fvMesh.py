@@ -91,6 +91,7 @@ class fvmCell:
         if not self._midPointSet:
             nPoints = 0
             for faceIndex in self._faceList:
+                print(faces)
                 for pointIndex in faces[faceIndex]:
                     self._midPoint = self._midPoint + points[pointIndex]
                     nPoints = nPoints + 1

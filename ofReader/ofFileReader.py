@@ -13,6 +13,7 @@ import numpy as np
 from tqdm import tqdm
 import math
 import sys
+import os
 
 # ==============================================================================
 # Helper Classes 
@@ -62,13 +63,14 @@ class ofFileFormat:
                     # Read the keyword
                     subStr = line.split()
                     subStr[1]=subStr[1].rstrip(';')
+                    print(f'subStr[1]: {subStr[1]}')
                     if subStr[1] == "Cloud<passivePositionParticle>" or subStr[1] == "Cloud<passiveParticle>":
                         self.type = "particlePosition"
                     elif subStr[1] == "scalarField" or subStr[1] == "volScalarField":
                         self.type = "scalar"
                     elif subStr[1] == "vectorField" or subStr[1] == "volVectorField":
                         self.type = "vectorField"
-                    elif subStr[1] == "labelList" or "labelField":
+                    elif subStr[1] == "labelList" or subStr[1] == "labelField":
                         self.type = "label"
                     elif subStr[1] == "faceCompactList":
                         self.type = "faceCompactList"
@@ -163,19 +165,107 @@ class ofFileFormat:
 # ==============================================================================
 # Helper Functions 
 # ==============================================================================
-def readOpenFOAMFile(filePath):
-    fileFormat = ofFileFormat()
-    fileFormat.readFile(filePath)
+def readOpenFOAMFile(filePath,**kwargs):
+    """Read an OpenFOAM file
+    This can be an Euler field in a time directory or Lagrangian data.
+    
+    Usage:
+    ------
+        from ofReader.ofFileReader import readOpenFOAMFile
+        # E.g. read the velocity file
+        U = readOpenFOAMFile('0/U')
 
-    data = np.zeros(1)
-    if fileFormat.format == "ASCII":
-        data = readASCIIDataBlock(filePath,fileFormat)
-    elif fileFormat.format == "binary":
-        data = readBinaryDataBlock(filePath,fileFormat)
+        To read the file in decomposed format pass the option decomposed
+        U = readOpenFOAMFile('/path/to/case/', fileName='U', time=0, decomposed=True)
+        
+         
+    """
+    decomposed = False
+    collated   = False
+    time       = 0
+    fileName   = ''
+    casePath   = filePath
+    if 'decomposed' in kwargs:
+            decomposed = bool(kwargs['decomposed'])
+            if 'time' not in kwargs:
+                raise ValueError('If decomposed is selected a time directory has to be specified.')
+            if 'fileName' not in kwargs:
+                raise ValueError('If decomposed is selected a fileName has to be specified.')
+            
+            time = kwargs['time']
+            fileName = kwargs['fileName']
+            decomposed=True
+            kwargs.pop('decomposed')
+
+    if not decomposed:
+        fileFormat = ofFileFormat()
+        fileFormat.readFile(filePath)
+
+        data = np.zeros(1)
+        if fileFormat.format == "ASCII":
+            data = readASCIIDataBlock(filePath,fileFormat)
+        elif fileFormat.format == "binary":
+            data = readBinaryDataBlock(filePath,fileFormat)
+        else:
+            print("File format is undefined")
+            sys.exit("Error reading: "+filePath)
+        return data
+
     else:
-        print("File format is undefined")
-        sys.exit("Error reading: "+filePath)
-    return data
+        # If decomposed built the filePath
+        collated, processorDirName = _has_processors_dir(filePath)
+
+        if collated:
+            raise NotImplementedError("This feature is not yet implemented.")
+        else:
+            # Get the number of processors:
+            nProcs = 0
+            for name in os.listdir(casePath):
+                full_path = os.path.join(casePath, name)
+                if os.path.isdir(full_path) and name.startswith("processor"):
+                    nProcs += 1
+
+            # Read the first processor file
+            data = np.zeros(1)
+            filePath = f'{casePath}/processor0/{time:g}/{fileName}'
+
+            fileFormat = ofFileFormat()
+            fileFormat.readFile(filePath)
+
+            if fileFormat.format == "ASCII":
+                data = readASCIIDataBlock(filePath,fileFormat)
+            elif fileFormat.format == "binary":
+                data = readBinaryDataBlock(filePath,fileFormat)
+            else:
+                print("File format is undefined")
+                sys.exit("Error reading: "+filePath)
+
+            # Read all files:
+            for n in range(1,nProcs):
+                filePath = f'{casePath}/processor{n:g}/{time:g}/{fileName}'
+
+                fileFormat = ofFileFormat()
+                fileFormat.readFile(filePath)
+
+                if fileFormat.format == "ASCII":
+                    data1 = readASCIIDataBlock(filePath,fileFormat)
+                elif fileFormat.format == "binary":
+                    data1 = readBinaryDataBlock(filePath,fileFormat)
+                else:
+                    print("File format is undefined")
+                    sys.exit("Error reading: "+filePath)
+
+                data = np.concatenate((data,data1))
+            
+            return data
+
+
+def _has_processors_dir(path):
+    for name in os.listdir(path):
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path) and name.startswith("processors"):
+            return True, name
+    return False, "processor0"
 
 
 def readFaceCompactList(filePath,fileFormat : ofFileFormat, binaryDataPos,nValues):
@@ -448,7 +538,7 @@ def readBinaryDataBlock(filePath,fileFormat : ofFileFormat):
                 # Get current file position
                 binaryDataPos = fp.tell()
                 break
-    
+
     if fileFormat.type == "faceCompactList":
         return readFaceCompactList(filePath,fileFormat,binaryDataPos,nValues)
     else:
