@@ -31,6 +31,9 @@ from ofReader.ofFileReader import readOpenFOAMFile
 pathToFile = '0.005/U'
 eulerianData = readOpenFOAMFile(pathToFile)
 
+# To load a decomposed OpenFOAM file use
+velocity = readOpenFOAMFile('/path/to/case',fileName='U', time=0.05, decomposed=True)
+
 # This also works for Lagrangian data
 pathToLagrangianData = '0.005/lagrangian/cloudName/pos'
 lagrangianData = readOpenFOAMFile(pathToFile)
