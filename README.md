@@ -4,8 +4,13 @@ Python functions to read OpenFOAM data for post processing.
 
 ## Installation
 
-To install the library with the wheel distribution tool using
-the provided `Install.sh` script.
+Starting with version 4.0 the project uses the TOML file for project builds.
+
+1. Make sure you have the required packages installed:
+   ```bash
+   pip install --upgrade pip setuptools wheel
+   ```
+2. Use `pip install .` to install the **ofReader** package.
 
 ## Usage
 
@@ -114,7 +119,12 @@ The returned sampled_data is a dictionary containing the projected particle prop
 
 ## Tests
 
-To execute the tests:
+Install the python tests with:
 ```bash
-python3 setup.py pytest
+pip install .[test]
 ```
+Run the tests with:
+```bash
+pytest
+```
+

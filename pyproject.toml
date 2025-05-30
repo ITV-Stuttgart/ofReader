@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ofReader"
+version = "0.4.0"
+authors = [{name="Jan Wilhelm Gärtner",email="jan-wilhelm.gaertner@irst.uni.stuttgart.de"}]
+dependencies = ["numpy","tqdm","scipy","pyvista"]
+license = {file="LICENSE"}
+description = "Library to read OpenFOAM data into python for post processing"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
