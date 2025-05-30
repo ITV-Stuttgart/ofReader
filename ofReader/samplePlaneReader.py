@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import math
 import copy
+from ofReader.triangleInterp import TriangleInterp
 
 
 class samplePlaneReader:
@@ -138,6 +139,10 @@ class samplePlaneReader:
         self._triPoints = np.array(readData[3])
 
         self._tri, self._triValue = self._triangulate()
+
+        # Create the triangulation maplotlib object for finding the closest
+        # triangle
+        self._triInterp = TriangleInterp(self._triPoints,self._tri)
 
     def __str__(self):
         return f"Eulerian data from file: ", self._fname
