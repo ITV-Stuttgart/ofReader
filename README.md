@@ -4,7 +4,7 @@ Python functions to read OpenFOAM data for post processing.
 
 ## Installation
 
-Starting with version 4.0 the project uses the TOML file for project builds.
+Starting with version 0.4.0 the project uses the TOML file for project builds.
 
 1. Make sure you have the required packages installed:
    ```bash
