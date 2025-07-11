@@ -10,49 +10,43 @@ import pyvista as pv
 
 class MapParticleToPlane:
     
-    def _triangulate(self,axMinMax,radMinMax,numAx,numRad):
-        xAxis = np.linspace(axMinMax[0],axMinMax[1],numAx+1)
-        yAxis = np.linspace(radMinMax[0],radMinMax[1],numRad+1)
+    def _triangulate(self,axMinMax,radMinMax,nX,nY):
+        xAxis = np.linspace(axMinMax[0],axMinMax[1],nX+1)
+        yAxis = np.linspace(radMinMax[0],radMinMax[1],nY+1)
         if not self._tri:
-            nAx, nRad = self._plane.shape
-
             # First create a continuous list of points the triangles can refer to
-            self._triPoints = np.zeros(((nAx+1)*(nRad+1),2))
-            for i in range(nAx+1):
-                for j in range(nRad+1):
-                    self._triPoints[i*(nRad+1)+j,0] = xAxis[i]
-                    self._triPoints[i*(nRad+1)+j,1] = yAxis[j]
+            self._triPoints = np.zeros(((nX+1)*(nY+1),2))
+            for i in range(nX+1):
+                for j in range(nY+1):
+                    self._triPoints[i*(nY+1)+j,0] = xAxis[i]
+                    self._triPoints[i*(nY+1)+j,1] = yAxis[j]
 
-            for i in range(nAx):
-                for j in range(nRad):
-                    self._tri.append((i*(nRad+1)+j,(i+1)*(nRad+1)+j,(i+1)*(nRad+1)+(j+1)))
-                    self._tri.append((i*(nRad+1)+j,i*(nRad+1)+(j+1),(i+1)*(nRad+1)+(j+1)))
+            for i in range(nX):
+                for j in range(nY):
+                    self._tri.append((i*(nY+1)+j,(i+1)*(nY+1)+j,(i+1)*(nY+1)+(j+1)))
+                    self._tri.append((i*(nY+1)+j,i*(nY+1)+(j+1),(i+1)*(nY+1)+(j+1)))
                     
 
     def _magnitude(self,vector):
         return math.sqrt(sum(pow(element, 2) for element in vector))
 
-    def _createPlaneFromParticleData(self,numAx,numRad,xBounds,yBounds):
-        axInd   = self._coords[0]     # axial index
-        radInd0 = self._coords[1]     # radial index
-        radInd1 = self._coords[2]     # radial index 2
+    def _createPlaneFromParticleData(self,nX,nY,xBounds,yBounds):
+        xMin = xBounds[0]
+        xMax = xBounds[1]
 
-        axMin = xBounds[0]
-        axMax = xBounds[1]
+        yMin = yBounds[0]
+        yMax = yBounds[1]     
 
-        radMin = yBounds[0]
-        radMax = yBounds[1]     
-
-        self._counts = np.zeros((numAx,numRad))
+        self._counts = np.zeros((nX,nY))
 
         # Create the triangulation
-        self._triangulate((axMin,axMax),(radMin,radMax),numAx,numRad)
+        self._triangulate((xMin,xMax),(yMin,yMax),nX,nY)
 
         # # Create an interpolator for the plotOverLine function
         # points = []
         # values = []
-        # for i in range(numAx):
-        #     for j in range(numRad):
+        # for i in range(nX):
+        #     for j in range(nY):
         #         values.append(self._plane[i,j])
         #         points.append(
         #             [0.5*(_xAxis[i]+self._xAxis[i+1]),
@@ -77,8 +71,9 @@ class MapParticleToPlane:
 
         There exist two general ways to create this plane:
         1) By providing the position data of the particles with the coords
-           option to give the axial axis (first entry), and the two radial axis
-           as a python tuple.
+           option to provide the x-, and y-axis index. Optionally set the 
+           cylinderDomain flag to true to get a radial component from the 
+           position data.
         2) An existing plane can be read in with the samplePlaneReader tool.
            For this option the input is the file path to the sample plane.
     
@@ -88,15 +83,20 @@ class MapParticleToPlane:
             Positions of the particles as a 2D numpy array of dimension [n,3]
             where each row is one particle
         coords :  Tuple
-            Provide the coordinates of the 2D plane. First entry is the axial
-            or x-axis, second and third entry are the indices for the radial
+            Provide the coordinates of the 2D plane. First entry is x-axis, index
+            second entry is the y-axis index
             components
-            e.g.: (1,0,2) means the y-axis is the axial direction and x-axis 
-                          and z-axis are the radial components
-        numAx : int
-            Number of axial bins in the 2D plane
-        numRad : int
-            Number of radial bins in the 2D plane
+            e.g.: (1,0)   means the y coordinate of the particles is the x-axis
+                          in the plane and the x-coordinate of the particles is 
+                          the y-axis in the plane.
+        cylinderDomain : bool
+            Switch on if the domain is a rotational cylinder with the 
+            x-axis as the axial component and the remaining two coordinate
+            directions as the radial component
+        nX : int
+            Number of bins in the 2D plane on the x axis
+        nY : int
+            Number of bins in the 2D plane on the y axis
         xBounds : Tuple
             Tuple of two values providing the min/max value of the axial component
         yBounds : Tuple
@@ -122,34 +122,53 @@ class MapParticleToPlane:
         mapper.map(pos,val)
         """
         # Default coordinate system
-        self._coords = (0,1,2)
+        self._coords = (0,1)
+        self._cylinderDomain = False
 
         if 'coords' in kwargs:
             self._coords = kwargs['coords']
 
+        if 'cylinderDomain' in kwargs:
+            self._coords = kwargs['cylinderDomain']
+
         if 'pos' in kwargs:
-            numAx  = 100    # Number of axial bins of the mapped plane
-            numRad = 100    # Number of radial bins of the mapped plane
+            nX  = 100    # Number of axial bins of the mapped plane
+            nY = 100    # Number of radial bins of the mapped plane
 
             pos = kwargs['pos']
 
-            if 'numAx' in kwargs:
-                numAx = kwargs['numAx']
+            if 'nX' in kwargs:
+                nX = kwargs['nX']
 
-            if 'numRad' in kwargs:
-                numRad = kwargs['numRad']
+            if 'nY' in kwargs:
+                nY = kwargs['nY']
 
             if 'xBounds' in kwargs:
                 xBounds = kwargs['xBounds']
             else:
-                xBounds = (np.min(pos[:,self._coords[0]]),np.max(pos[:,self._coords[1]]))
+                xBounds = (np.min(pos[:,self._coords[0]]),
+                           np.max(pos[:,self._coords[0]]))
 
             if 'yBounds' in kwargs:
                 yBounds = kwargs['yBounds']
             else:
-                yBounds = (np.min(np.sqrt(pos[:,self._coords[1]]**2+pos[:,self._coords[2]]**2)),np.max(np.sqrt(pos[:,self._coords[1]]**2+pos[:,self._coords[2]]**2)))
+                if self._cylinderDomain:
+                    cylinderCoords = [0,1,2]
 
-            self._createPlaneFromParticleData(pos,numAx,numRad,xBounds,yBounds)
+                    # Remove the x coordinate
+                    cylinderCoords.remove(self._coords[0])
+
+                    # Determine the other two directions
+                    radInd0 = cylinderCoords[0]
+                    radInd1 = cylinderCoords[1]
+
+                    yBounds = (np.min(np.sqrt(pos[:,radInd0]**2+pos[:,radInd1]**2)),
+                               np.max(np.sqrt(pos[:,radInd0]**2+pos[:,radInd1]**2)))
+                else:
+                    yBounds = (np.min(pos[:,self._coords[1]]),
+                               np.max(pos[:,self._coords[1]]))
+
+            self._createPlaneFromParticleData(nX,nY,xBounds,yBounds)
 
         elif 'filePath' in kwargs:
             self._createPlaneFromSamplePlane(kwargs['filePath'])
