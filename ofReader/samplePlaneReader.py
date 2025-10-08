@@ -63,7 +63,7 @@ class samplePlaneReader:
             i=0
             for face in self._faces:
                 if len(face) == 3:
-                    self._tri.append(np.array(face))
+                    self._tri.append(np.array(face,dtype=np.int32))
                     self._triValue.append(self._values[i])
                 if len(face) == 4:
                     face1 = [face[0],face[1],face[2]]
