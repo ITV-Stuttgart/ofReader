@@ -1,44 +1,160 @@
 import numpy as np
-from ofReader.ofFileReader import ofFileFormat
+from ofReader.ofFileFormat import ofFileFormat
+from ofReader.ofReadSupportFunctions import *
 import os.path as path
 from io import StringIO
 
 
 class ofBoundaryData:
 
-    def __init__(self):
-        self._patches = []
+    def _read_ascii_line(self,fp):
+        """
+        Read one ASCII line from a binary file pointer fp.
+        Returns: line and if EoF
 
-    def addPatch(self,patchName,patchType):
-        if patchType == "cyclic":
-            self._patches.append(_cyclic(patchName))
-            return self._patches[-1]
-        if patchType == "waveTransmissive":
-            self._patches.append(_waveTransmissive(patchName))
-            return self._patches[-1]
+        line, EoF = _read_ascii_line(fp)
+        """
+        if self._file_format.format == "binary":
+            raw = fp.readline()  # raw bytes including newline, b'' at EOF
+            if raw == b"":
+                return None, True  # True EOF
+            line = raw.decode("utf-8", errors="ignore").rstrip("\r\n")
+            return line, False
         else:
-            self._patches.append(_empty(patchName))
-            return self._patches[-1]
+            line = fp.readline()
+            if not line:
+                return line, True
+            return line, False
+
+
+    def _readPatch(self,fp):
+        """Reads the patch information containing the patch name, type and value
+
+        Returns a tuple of first if a patch could be read and second the 
+        patch itself.
+        """
+
+        patch_data = np.zeros(1)
+        patch_name = "default"
+        patch_type = "empty"
+
+        # Read the patch name
+        while (True):
+            line,eof = self._read_ascii_line(fp)
+            if eof:
+                raise EOFError("EOF read -- invalid boundaryField")
+            
+            stripped = line.strip()
+            if stripped == "}":
+                return False,Patch(patch_name)
+            
+            if stripped != "":
+                patch_name = stripped.rstrip(';')
+                break
+
+        # Read the patch type
+        while (True):
+            line,eof = self._read_ascii_line(fp)
+            if eof:
+                raise EOFError("EOF read -- invalid boundaryField")
+
+            stripped = line.strip()
+
+            if stripped == "}":
+                return False,Patch(patch_name)
+
+            if stripped.startswith("type"):
+                parts = stripped.split()
+                patch_type = parts[1].rstrip(";")
+                break
+
+        # Read the patch value
+        uniform_value = True
+        while (True):
+            line,eof = self._read_ascii_line(fp)
+            if eof:
+                raise EOFError("EOF read -- invalid boundaryField")
+
+            stripped = line.strip()
+
+            if stripped == "}":
+                p = Patch(patch_name)
+                p.type = patch_type
+                return False,p
+
+            if stripped.startswith("value"):
+                if "nonuniform" in stripped:
+                    uniform_value = False
+                break
         
-    def write(self,filePath):
-        f = open(filePath, "a")
-        buffer = StringIO()
-        buffer.write("boundaryField\n")
-        buffer.write("{\n")
-        for p in self._patches:
-            p.write(buffer)
-        buffer.write("}\n")
-        f.write(buffer.getvalue())
-        f.close()
+        if not uniform_value:
+            if self._file_format.format == "binary":
+                patch_data = readBinaryDataBlock(fp,self._file_format)
+            else:
+                patch_data = readASCIIDataBlock(fp,self._file_format)
+
+
+        # Create the Patch
+        patch = Patch(patch_name)
+        patch.type = patch_type
+        patch.data = patch_data
+
+        return True,patch
+
+
+    def __init__(self):
+        self._patches = {}
+
+
+    # Access
+    @property
+    def patches(self):
+        return self._patches
+
+    
+    def read(self,fp,file_format : ofFileFormat):
+        """Read the boundary data block from a given file with the 
+        ofFileFormat to get the binary or ascii settings
+        """
+        self._contains_boundary = False
+        self._file_format = file_format
+        
+
+        # Read till boundary field keyword is found
+        while (True):
+            line,eof = self._read_ascii_line(fp)
+            if eof:
+                raise EOFError("EOF before boundaryField entry")
+
+            if line.rstrip() == "boundaryField":
+                break
+        
+        while (True):
+            line,eof = self._read_ascii_line(fp)
+            if eof:
+                raise EOFError("EOF before opening bracket of boundaryField entry")
+            
+            if line.rstrip() == "{":
+                break
+
+        while(True):
+            valid_patch, patch = self._readPatch(fp)
+            if not valid_patch:
+                break
+            self._patches[patch.name] = patch
+
+
+
 
 # ==============================================================================
 #                           Patch Types
 # ==============================================================================
 
-class _patch:
-    def __init__(self):
-        self.name = "default"
+class Patch:
+    def __init__(self,name):
+        self.name = name
         self.type = "empty"
+        self.data = np.zeros(1)
 
     def write(self,buffer : StringIO):
         buffer.write(f"\t{self.name}\n")
@@ -51,22 +167,28 @@ class _patch:
         buffer.write("")
 
 
-class _cyclic(_patch):
+class Cyclic_Patch(Patch):
     def __init__(self,name):
-        self.name = name
+        super().__init__(name)
         self.type = "cyclic"
 
     def _writePatchProperties(self,buffer : StringIO):
         buffer.write("")
 
-class _empty(_patch):
+class Empty_Patch(Patch):
     def __init__(self,name):
-        self.name = name
+        super().__init__(name)
         self.type = "empty"
 
-class _waveTransmissive(_patch):
+class Calculated_Patch(Patch):
     def __init__(self,name):
-        self.name = name
+        super().__init__(name)
+        self.type = "calculated"
+
+
+class WaveTransmissive_Patch(Patch):
+    def __init__(self,name):
+        super().__init__(name)
         self.type = "waveTransmissive"
         self.gamma = 1.0
         self.fieldInf = np.zeros(1)

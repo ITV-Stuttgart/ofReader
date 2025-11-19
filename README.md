@@ -34,14 +34,25 @@ The OpenFOAM fields can be read with
 from ofReader.ofFileReader import readOpenFOAMFile
 # E.g. read the velocity field of time step 0.005s
 pathToFile = '0.005/U'
-eulerianData = readOpenFOAMFile(pathToFile)
+eulerianData_field = readOpenFOAMFile(pathToFile)
 
 # To load a decomposed OpenFOAM file use
-velocity = readOpenFOAMFile('/path/to/case',fileName='U', time=0.05, decomposed=True)
+velocity_field = readOpenFOAMFile('/path/to/case',fileName='U', time=0.05, decomposed=True)
 
 # This also works for Lagrangian data
 pathToLagrangianData = '0.005/lagrangian/cloudName/pos'
 lagrangianData = readOpenFOAMFile(pathToFile)
+```
+Reading a volScalarField or volVectorField returns a 
+[ofVolField](./ofReader/ofvolField.py) python class which provides access to 
+the internal field and the boundary data.
+```python
+eulerianData_field = readOpenFOAMFile(pathToFile)
+# Return the internal field as numpy array
+internal_field = eulerianData_field.internal_data
+
+# Return the boundary data of a given patch name
+wall_patch = eulerianData_field.boundary["wall"]
 ```
 
 For the Eulerian fields the position of the entries is stored in the fvMesh 
@@ -89,7 +100,9 @@ writeOpenFOAMFile('Path/to/file',
 
 ## Sample Particle Data to Plane
 
-In Lagrangian simulations, a common use case is to map particle data onto a plane — particularly useful for circumferential or axisymmetric setups. For this purpose, the `MapParticleToPlane` class is provided.
+In Lagrangian simulations, a common use case is to map particle 
+data onto a plane - particularly useful for circumferential or axisymmetric 
+setups. For this purpose, the `MapParticleToPlane` class is provided.
 
 This class allows you to:
 
