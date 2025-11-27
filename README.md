@@ -113,19 +113,40 @@ This class allows you to:
 ### Basic Usage
 
 ```python
-from ofReader.mapParticleToPlane import MapParticleToPlane
+import ofReader as of
 
-mapper = MapParticleToPlane(
-    path_to_case="path/to/case",
-    time="latestTime",
-    plane_origin=[0.0, 0.0, 0.0],
-    plane_normal=[0.0, 0.0, 1.0]
-)
+# Load lagrangian data:
+pos = of.readOpenFOAMFile('path/to/case/lagrangian/droplet/positions')
+# Load a field, e.g., the diameter
+d = of.readOpenFOAMFile('path/to/case/lagrangian/droplet/d')
 
-sampled_data = mapper.sample()
+
+# Create the object
+mapper = of.MapParticleToPlane()
+
+# Create the plane to map to, either by reading an existing plane
+# or creating one -- See als MapToParticlePlane class
+mapper.createPlane(pos=pos, coords=(0,1), cylinderDomain=True)
+
+mapper.map(pos,d)
+
 ```
 
-The returned sampled_data is a dictionary containing the projected particle properties.
+To visualize the plane, it can be plotted with matplotlibs by using the plot 
+function, or by writing out the plane as a VTK file. 
+
+```python
+import matplotlib.pyplot as plt
+
+# Plot the plane in python
+plt.figure()
+ax = plt.gca()
+mapper.plot(ax)
+
+# Write out as VTK file
+mapper.writeVTKFile('myVtkFile.vtk')
+```
+
 
 > [!NOTE]
 > This class is particularly useful for post-processing particle-laden flows simulated with OpenFOAM.

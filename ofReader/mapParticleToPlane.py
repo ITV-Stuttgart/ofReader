@@ -221,7 +221,38 @@ class MapParticleToPlane:
         
         
     def map(self,pos,val):
-        # Loop over all particles and store them in the bin
+        """Map the value of the particles to the plane
+
+        Parameters
+        --------------------
+        pos : numpy array
+            Positions of the particles as a 2D numpy array of dimension [n,3]
+            where each row is one particle
+        val : numpy array
+            Value field of of the particle, e.g., the diameter to map to the 
+            plane
+
+        Examples:
+        ------
+
+        # First generate an empty mapping object
+        mapper = MapParticleToPlane()
+        
+        # Generate a plane with the read in position values of a particle list
+        # Here the axial axis is the z-axis
+        mapper.createPlane(pos=particlePos,coords=(2,0),cylinderDomain=True,xBounds=(0,35))
+        
+        # Alternative option is to load an existing sample plane
+        mapper.createPlane(filePath='path/to/existing/plane')
+
+        # Map the particle data to the plane
+        mapper.map(pos,val)
+        
+        """
+
+        if len(pos) != len(val):
+            raise ValueError("Position and value array do not match in size")
+
         counts = np.zeros(len(self._tri))
         self._triValues = np.zeros(len(self._tri))
         for p,v in zip(pos,val):
