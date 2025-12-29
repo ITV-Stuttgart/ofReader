@@ -129,7 +129,7 @@ class MapParticleToPlane:
             self._coords = kwargs['coords']
 
         if 'cylinderDomain' in kwargs:
-            self._coords = kwargs['cylinderDomain']
+            self._cylinderDomain = kwargs['cylinderDomain']
 
         if 'pos' in kwargs:
             nX  = 100    # Number of axial bins of the mapped plane
@@ -161,6 +161,8 @@ class MapParticleToPlane:
                     # Determine the other two directions
                     radInd0 = cylinderCoords[0]
                     radInd1 = cylinderCoords[1]
+
+                    self._cylinderCoords = [self._coords[0],radInd0,radInd1]
 
                     yBounds = (np.min(np.sqrt(pos[:,radInd0]**2+pos[:,radInd1]**2)),
                                np.max(np.sqrt(pos[:,radInd0]**2+pos[:,radInd1]**2)))
@@ -256,8 +258,15 @@ class MapParticleToPlane:
         counts = np.zeros(len(self._tri))
         self._triValues = np.zeros(len(self._tri))
         for p,v in zip(pos,val):
+            point2D = []
             # Convert the point to the 2D axis system
-            point2D = [p[self._coords[0]],self._magnitude([p[self._coords[1]],p[self._coords[2]]])]
+            if self._cylinderDomain:
+                point2D = [
+                    p[self._cylinderCoords[0]],
+                    self._magnitude([p[self._cylinderCoords[1]],p[self._cylinderCoords[2]]])]
+            else:
+                point2D = [p[self._coords[0]],p[self._coords[1]]]
+            
             triIndex = self._triFinder(*point2D)
             # If -1 the point was not found
             if (triIndex == -1):
