@@ -4,14 +4,16 @@ from ofReader.ofBoundaryData import ofBoundaryData
 import os.path as path
 from io import StringIO
 
-def writeOpenFOAMFile(filePath,fileFormat : ofFileFormat, data, boundaryData, dimensions):
+def writeOpenFOAMFile(filePath,file_format : ofFileFormat, data, boundaryData, dimensions):
 
     # Name of the file is the last part of the file name
     name = path.basename(filePath)
-    _writeOpenFOAMHeader(filePath,fileFormat, name)
+    _writeOpenFOAMHeader(filePath,file_format, name)
     _writeDimensions(filePath,dimensions)
-    _writeASCIIDataBlock(filePath,fileFormat, data)
-    boundaryData.write(filePath)
+    _writeASCIIDataBlock(filePath,file_format, data)
+
+    with open(filePath,  "a", encoding='utf-8', errors='ignore') as asciiFp:
+        boundaryData.write(asciiFp,file_format)
     
 
 

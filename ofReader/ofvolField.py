@@ -15,7 +15,7 @@ class ofVolField:
     
     @property
     def boundary(self):
-        return self._boundary.patches
+        return self._boundary
     
     @boundary.setter
     def boundary(self,boundary):

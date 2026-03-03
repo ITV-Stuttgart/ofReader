@@ -143,6 +143,14 @@ class ofBoundaryData:
                 break
             self._patches[patch.name] = patch
 
+    
+    def write(self,fp,file_format : ofFileFormat):
+        fp.write("boundaryField\n")
+        fp.write("{\n")
+        for patch in self._patches.values():
+            patch.write(fp)
+        fp.write("}\n")
+        fp.write("\n")
 
 
 
