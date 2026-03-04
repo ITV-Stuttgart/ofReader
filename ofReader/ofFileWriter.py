@@ -4,7 +4,7 @@ from ofReader.ofBoundaryData import ofBoundaryData
 import os.path as path
 from io import StringIO
 
-def writeOpenFOAMFile(file_path,file_header : FileHeader, data, boundaryData : ofBoundaryData, dimensions):
+def writeOpenFOAMFile(file_path,file_header : FileHeader, data, boundary : ofBoundaryData, dimensions):
     """Write an OpenFOAM field file including internal and boundary field data.
 
     Parameters
@@ -62,7 +62,7 @@ def writeOpenFOAMFile(file_path,file_header : FileHeader, data, boundaryData : o
     _writeOpenFOAMHeader(file_path,file_header, name)
     _writeDimensions(file_path,dimensions)
     _writeASCIIDataBlock(file_path,file_header, data)
-    _writeASCIIBoundaryData(file_path)
+    _writeASCIIBoundaryData(file_path,boundary)
     
     
 
