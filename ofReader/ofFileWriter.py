@@ -1,23 +1,73 @@
 import numpy as np
-from ofReader.ofFileReader import ofFileFormat
+from ofReader.ofFileReader import FileHeader
 from ofReader.ofBoundaryData import ofBoundaryData
 import os.path as path
 from io import StringIO
 
-def writeOpenFOAMFile(filePath,file_format : ofFileFormat, data, boundaryData, dimensions):
+def writeOpenFOAMFile(file_path,file_header : FileHeader, data, boundaryData : ofBoundaryData, dimensions):
+    """Write an OpenFOAM field file including internal and boundary field data.
+
+    Parameters
+    ----------
+    file_path : str
+        Absolute or relative path to the OpenFOAM field file 
+        (e.g., '/path/to/case/0/U').
+
+    file_header : FileHeader
+        OpenFOAM file header specification. Contains information such as:
+        - ASCII or binary format
+        - Scalar precision / size
+        - Header configuration
+
+    data : numpy.ndarray
+        Internal field values. Shape depends on field type:
+        - (nCells,) for scalar fields
+        - (nCells, 3) for vector fields
+        - (nCells, 6) or (nCells, 9) for tensor fields
+
+    boundaryData : ofBoundaryData
+        Collection of boundary patches including their field values.
+        Each patch must implement its own ``write()`` method.
+
+    dimensions : list[int]
+        List of 7 or 8 integers defining the OpenFOAM dimensional units
+        in the format:
+            [mass, length, time, temperature, quantity, current, luminousIntensity]
+
+    Notes
+    -----
+    The function writes a complete OpenFOAM field file including:
+    - Standard header
+    - Dimensions entry
+    - Internal field definition
+    - Boundary field definitions
+
+    Example
+    -------
+    >>> writeOpenFOAMFile(
+    ...     '/path/to/case/0/U',
+    ...     file_header,
+    ...     data,
+    ...     boundaryData,
+    ...     dimensions
+    ... )
+    """
+    
+
+    # Currently only binary is supported.
+    file_header.format = "ascii"
 
     # Name of the file is the last part of the file name
-    name = path.basename(filePath)
-    _writeOpenFOAMHeader(filePath,file_format, name)
-    _writeDimensions(filePath,dimensions)
-    _writeASCIIDataBlock(filePath,file_format, data)
-
-    with open(filePath,  "a", encoding='utf-8', errors='ignore') as asciiFp:
-        boundaryData.write(asciiFp,file_format)
+    name = path.basename(file_path)
+    _writeOpenFOAMHeader(file_path,file_header, name)
+    _writeDimensions(file_path,dimensions)
+    _writeASCIIDataBlock(file_path,file_header, data)
+    _writeASCIIBoundaryData(file_path)
+    
     
 
 
-def _writeOpenFOAMHeader(filePath,fileFormat : ofFileFormat,name):
+def _writeOpenFOAMHeader(filePath,fileFormat : FileHeader,name):
     f = open(filePath, "w")
     f.write("/*--------------------------------*- C++ -*----------------------------------*\\\n")
     f.write("| =========                 |                                                 |\n")
@@ -46,7 +96,7 @@ def _writeDimensions(filePath,dimensions):
         f.write(f"{e:d} ")
     f.write("];\n\n")
 
-def _writeASCIIDataBlock(filePath,fileFormat : ofFileFormat,data):
+def _writeASCIIDataBlock(filePath,fileFormat : FileHeader,data):
     f = open(filePath, "a")
     if fileFormat.type == "vectorField" or fileFormat.type == "volVectorField":
         f.write("internalField   nonuniform List<vector>\n")
@@ -62,3 +112,8 @@ def _writeASCIIDataBlock(filePath,fileFormat : ofFileFormat,data):
         for i in range(len(data)):
             f.write(f"{data[i]:g}\n")
         f.write(");\n")
+
+def _writeASCIIBoundaryData(file_path,boundary : ofBoundaryData):
+    with open(file_path,  "a", encoding='utf-8', errors='ignore') as asciiFp:
+        boundary.write(asciiFp)
+    

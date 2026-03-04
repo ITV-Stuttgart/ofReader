@@ -1,5 +1,5 @@
 import numpy as np
-from ofReader.ofFileFormat import ofFileFormat
+from ofReader.fileHeader import FileHeader
 from ofReader.ofReadSupportFunctions import *
 import os.path as path
 from io import StringIO
@@ -14,7 +14,7 @@ class ofBoundaryData:
 
         line, EoF = _read_ascii_line(fp)
         """
-        if self._file_format.format == "binary":
+        if self._file_header.format == "binary":
             raw = fp.readline()  # raw bytes including newline, b'' at EOF
             if raw == b"":
                 return None, True  # True EOF
@@ -88,10 +88,10 @@ class ofBoundaryData:
                 break
         
         if not uniform_value:
-            if self._file_format.format == "binary":
-                patch_data = readBinaryDataBlock(fp,self._file_format)
+            if self._file_header.format == "binary":
+                patch_data = readBinaryDataBlock(fp,self._file_header)
             else:
-                patch_data = readASCIIDataBlock(fp,self._file_format)
+                patch_data = readASCIIDataBlock(fp,self._file_header)
 
 
         # Create the Patch
@@ -112,12 +112,12 @@ class ofBoundaryData:
         return self._patches
 
     
-    def read(self,fp,file_format : ofFileFormat):
+    def read(self,fp,file_header : FileHeader):
         """Read the boundary data block from a given file with the 
-        ofFileFormat to get the binary or ascii settings
+        FileHeader to get the binary or ascii settings
         """
         self._contains_boundary = False
-        self._file_format = file_format
+        self._file_header = file_header
         
 
         # Read till boundary field keyword is found
@@ -144,7 +144,7 @@ class ofBoundaryData:
             self._patches[patch.name] = patch
 
     
-    def write(self,fp,file_format : ofFileFormat):
+    def write(self,fp):
         fp.write("boundaryField\n")
         fp.write("{\n")
         for patch in self._patches.values():

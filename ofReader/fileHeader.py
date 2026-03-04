@@ -4,13 +4,8 @@ import numpy as np
 # Helper Classes 
 # ==============================================================================
 
-class ofFileFormat:
-    """OpenFOAM File Format
-    
-    Reads the file header and stores all relevant information such as the type
-    of the object to be read, e.g., scalar field, vector field, etc. or the 
-    used byte size for scalar and label values.
-    """
+class FileHeader:
+    """Parse and store OpenFOAM file header metadata."""
 
     def __init__(self):
         # Member variables

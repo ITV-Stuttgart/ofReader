@@ -4,7 +4,7 @@ import math
 import sys
 import os
 import io
-from ofReader.ofFileFormat import ofFileFormat
+from ofReader.fileHeader import FileHeader
 
 def has_processors_dir(path):
     for name in os.listdir(path):
@@ -14,7 +14,7 @@ def has_processors_dir(path):
     return False, "processor0"
 
 
-def readFaceCompactList(binaryFp, fileFormat : ofFileFormat, binaryDataPos,nValues):
+def readFaceCompactList(binaryFp, file_header : FileHeader, binaryDataPos,nValues):
     """Function to read OpenFOAMs faceCompactIOList
     
     Reading the face compact list requires an own function, as it is stored in 
@@ -34,12 +34,12 @@ def readFaceCompactList(binaryFp, fileFormat : ofFileFormat, binaryDataPos,nValu
     # Discard this byte as it is the opening bracket of the data field
 
     # Read now all labels
-    if fileFormat.labelSize == 32:
+    if file_header.labelSize == 32:
         startIndices = np.zeros(nValues,dtype=np.int32)
-        startIndices = np.frombuffer(binaryFp.read(nValues*fileFormat.labelByteSize),dtype=np.int32,count=nValues)
+        startIndices = np.frombuffer(binaryFp.read(nValues*file_header.labelByteSize),dtype=np.int32,count=nValues)
     else:
         startIndices = np.zeros(nValues,dtype=np.int64)
-        startIndices = np.frombuffer(binaryFp.read(nValues*fileFormat.labelByteSize),dtype=np.int64,count=nValues)        
+        startIndices = np.frombuffer(binaryFp.read(nValues*file_header.labelByteSize),dtype=np.int64,count=nValues)        
     # Read closing bracket
     binaryFp.read(1)
 
@@ -70,7 +70,7 @@ def readFaceCompactList(binaryFp, fileFormat : ofFileFormat, binaryDataPos,nValu
     for i in tqdm(range(int(math.ceil(nFaces/facesToRead)))):
         facesToRead = min(facesToRead,nFaces-readFaces)
         nLabels = int(startIndices[readFaces+facesToRead]-startIndices[readFaces])
-        buffer = np.frombuffer(binaryFp.read(nLabels*fileFormat.labelByteSize),dtype=fileFormat.labelDataType,count=nLabels)
+        buffer = np.frombuffer(binaryFp.read(nLabels*file_header.labelByteSize),dtype=file_header.labelDataType,count=nLabels)
         for j in range(readFaces,readFaces+facesToRead):
             startIndexOfBuffer = startIndices[j] - startIndices[readFaces]
             stopIndexOfBuffer = startIndices[j+1] - startIndices[readFaces]
@@ -78,52 +78,52 @@ def readFaceCompactList(binaryFp, fileFormat : ofFileFormat, binaryDataPos,nValu
         readFaces = readFaces+facesToRead
     return faces
 
-def readLabelField(binaryFp, fileFormat : ofFileFormat, nValues : int):
+def readLabelField(binaryFp, file_header : FileHeader, nValues : int):
     # Set buffer length to read
     
     bufferElements = min(nValues,1000)
     readValues = 0
-    data = np.zeros(nValues,dtype=fileFormat.labelDataType)
+    data = np.zeros(nValues,dtype=file_header.labelDataType)
     for i in tqdm(range(int(math.ceil(nValues/bufferElements)))):
         bufferElements = min(bufferElements,nValues-readValues)
-        bufferSize = bufferElements*fileFormat.labelByteSize
+        bufferSize = bufferElements*file_header.labelByteSize
         data[readValues:readValues+bufferElements] = np.frombuffer(
             binaryFp.read(bufferSize),
-            dtype=fileFormat.labelDataType,
+            dtype=file_header.labelDataType,
             count=bufferElements)
         readValues = readValues + bufferElements
     return data
 
 
-def readScalarField(binaryFp, fileFormat : ofFileFormat, nValues : int):
+def readScalarField(binaryFp, file_header : FileHeader, nValues : int):
     # Set buffer length to read
     
     bufferElements = min(nValues,1000)
     readValues = 0
-    data = np.zeros(nValues,dtype=fileFormat.scalarDataType)
+    data = np.zeros(nValues,dtype=file_header.scalarDataType)
     for i in tqdm(range(int(math.ceil(nValues/bufferElements)))):
         bufferElements = min(bufferElements,nValues-readValues)
-        bufferSize = bufferElements*fileFormat.scalarByteSize
+        bufferSize = bufferElements*file_header.scalarByteSize
         data[readValues:readValues+bufferElements] = np.frombuffer(
             binaryFp.read(bufferSize),
-            dtype=fileFormat.scalarDataType,
+            dtype=file_header.scalarDataType,
             count=bufferElements)
         readValues = readValues + bufferElements
     return data
 
-def readVectorField(binaryFp, fileFormat : ofFileFormat, nValues : int):
+def readVectorField(binaryFp, file_header : FileHeader, nValues : int):
     # Set buffer length to read
     
     bufferElements = min(nValues,500)
     readValues = 0
-    data = np.zeros((nValues,3),dtype=fileFormat.scalarDataType)
+    data = np.zeros((nValues,3),dtype=file_header.scalarDataType)
     for i in tqdm(range(int(math.ceil(nValues/bufferElements)))):
         bufferElements = min(bufferElements,nValues-readValues)
-        bufferSize = bufferElements*fileFormat.scalarByteSize
+        bufferSize = bufferElements*file_header.scalarByteSize
         # Each vector has three elements, thus have to read three scalars
         buffer = np.frombuffer(
             binaryFp.read(3*bufferSize),
-            dtype=fileFormat.scalarDataType,
+            dtype=file_header.scalarDataType,
             count=3*bufferElements)
         
 
@@ -131,23 +131,23 @@ def readVectorField(binaryFp, fileFormat : ofFileFormat, nValues : int):
         readValues = readValues + bufferElements
     return data
 
-def readParticlePosition(binaryFp, fileFormat : ofFileFormat, nValues : int):
+def readParticlePosition(binaryFp, file_header : FileHeader, nValues : int):
     # Set buffer length to read
-    data = np.zeros((nValues,3),dtype=fileFormat.scalarDataType)
+    data = np.zeros((nValues,3),dtype=file_header.scalarDataType)
     for i in tqdm(range(nValues)):
         # Read first two bytes as opening bracket and new line character and discard
         binaryFp.read(2)
-        data[i] = np.frombuffer(binaryFp.read(3*fileFormat.scalarByteSize),dtype=fileFormat.scalarDataType,count=3)
+        data[i] = np.frombuffer(binaryFp.read(3*file_header.scalarByteSize),dtype=file_header.scalarDataType,count=3)
         
         # read integer for orig particle ID
-        binaryFp.read(fileFormat.labelByteSize)
+        binaryFp.read(file_header.labelByteSize)
         # Read closing bracket
         binaryFp.read(1)
     return data
 
 
-def readLabelFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
-    data = np.zeros(nValues,dtype=fileFormat.labelDataType)
+def readLabelFieldASCII(asciiFp, file_header : FileHeader, nValues : int):
+    data = np.zeros(nValues,dtype=file_header.labelDataType)
     # Find opening bracket
     while True:
         line = asciiFp.readline()
@@ -160,12 +160,12 @@ def readLabelFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
         line.rstrip()
         if not line:
             break
-        data[i] = fileFormat.labelDataType(line)
+        data[i] = file_header.labelDataType(line)
 
     return data
 
-def readScalarFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
-    data = np.zeros(nValues,dtype=fileFormat.scalarDataType)
+def readScalarFieldASCII(asciiFp, file_header : FileHeader, nValues : int):
+    data = np.zeros(nValues,dtype=file_header.scalarDataType)
     # Find opening bracket
     while True:
         line = asciiFp.readline()
@@ -178,12 +178,12 @@ def readScalarFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
         line.rstrip()
         if not line:
             break
-        data[i] = fileFormat.scalarDataType(line)
+        data[i] = file_header.scalarDataType(line)
 
     return data
 
-def readVectorFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
-    data = np.zeros((nValues,3),dtype=fileFormat.scalarDataType)
+def readVectorFieldASCII(asciiFp, file_header : FileHeader, nValues : int):
+    data = np.zeros((nValues,3),dtype=file_header.scalarDataType)
     # Find opening bracket
     while True:
         line = asciiFp.readline()
@@ -201,14 +201,14 @@ def readVectorFieldASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
         subStr = subStr[1].split(')')
         subStr = subStr[0]
         subStr = subStr.split()
-        data[i][0] = fileFormat.scalarDataType(subStr[0])
-        data[i][1] = fileFormat.scalarDataType(subStr[1])
-        data[i][2] = fileFormat.scalarDataType(subStr[2])
+        data[i][0] = file_header.scalarDataType(subStr[0])
+        data[i][1] = file_header.scalarDataType(subStr[1])
+        data[i][2] = file_header.scalarDataType(subStr[2])
 
     return data
 
-def readFaceList(asciiFp, fileFormat : ofFileFormat, nValues : int):
-    faces = [ np.zeros(1,dtype=fileFormat.labelDataType) for _ in range(nValues) ]
+def readFaceList(asciiFp, file_header : FileHeader, nValues : int):
+    faces = [ np.zeros(1,dtype=file_header.labelDataType) for _ in range(nValues) ]
     # Find opening bracket
     while True:
         line = asciiFp.readline()
@@ -226,14 +226,14 @@ def readFaceList(asciiFp, fileFormat : ofFileFormat, nValues : int):
         subStr = subStr[1].split(')')
         subStr = subStr[0]
         subStr = subStr.split()
-        face = np.zeros(len(subStr),dtype=fileFormat.labelDataType)
+        face = np.zeros(len(subStr),dtype=file_header.labelDataType)
         for j in range(len(subStr)):
-            face[j] = fileFormat.labelDataType(subStr[j])
+            face[j] = file_header.labelDataType(subStr[j])
         faces[i] = face
     return faces
 
-def readParticlePositionASCII(asciiFp, fileFormat : ofFileFormat, nValues : int):
-    data = np.zeros((nValues,3),dtype=fileFormat.scalarDataType)
+def readParticlePositionASCII(asciiFp, file_header : FileHeader, nValues : int):
+    data = np.zeros((nValues,3),dtype=file_header.scalarDataType)
     # Find opening bracket
     while True:
         line = asciiFp.readline()
@@ -250,15 +250,15 @@ def readParticlePositionASCII(asciiFp, fileFormat : ofFileFormat, nValues : int)
         subStr = line.split('(')
         subStr = subStr[1].split(')')
         subStr = subStr[0].split()
-        data[i][0] = fileFormat.scalarDataType(subStr[0])
-        data[i][1] = fileFormat.scalarDataType(subStr[1])
-        data[i][2] = fileFormat.scalarDataType(subStr[2])
+        data[i][0] = file_header.scalarDataType(subStr[0])
+        data[i][1] = file_header.scalarDataType(subStr[1])
+        data[i][2] = file_header.scalarDataType(subStr[2])
 
     return data
 
 
 
-def readBinaryDataBlock(binaryFp,fileFormat : ofFileFormat):
+def readBinaryDataBlock(binaryFp,file_header : FileHeader):
     # Find how many values have to be read
     data = np.zeros(1)
     nValues = 0
@@ -291,35 +291,35 @@ def readBinaryDataBlock(binaryFp,fileFormat : ofFileFormat):
             break
 
 
-    if fileFormat.type == "faceCompactList":
-        return readFaceCompactList(binaryFp,fileFormat,binaryDataPos,nValues)
+    if file_header.type == "faceCompactList":
+        return readFaceCompactList(binaryFp,file_header,binaryDataPos,nValues)
     else:
         # Read the next byte and express as char
         binaryFp.read(1)
         # Discard this byte as it is the opening bracket of the data field
 
-        if fileFormat.type == "scalar":
+        if file_header.type == "scalar":
             data = np.zeros(nValues)    
-        elif fileFormat.type == "label":
+        elif file_header.type == "label":
             data = np.zeros(nValues,dtype=int)
-        elif fileFormat.type == "vectorField" or fileFormat.type ==  "particlePosition":
+        elif file_header.type == "vectorField" or file_header.type ==  "particlePosition":
             data = np.zeros((nValues,3)) 
 
-        if fileFormat.type == "scalar":
-            data = readScalarField(binaryFp,fileFormat,nValues)
-        elif fileFormat.type == "label":
-            data = readLabelField(binaryFp,fileFormat,nValues)
-        elif fileFormat.type == 'vectorField':           
-            data = readVectorField(binaryFp,fileFormat,nValues)
-        elif fileFormat.type == "particlePosition":
-            data = readParticlePosition(binaryFp,fileFormat,nValues)
+        if file_header.type == "scalar":
+            data = readScalarField(binaryFp,file_header,nValues)
+        elif file_header.type == "label":
+            data = readLabelField(binaryFp,file_header,nValues)
+        elif file_header.type == 'vectorField':           
+            data = readVectorField(binaryFp,file_header,nValues)
+        elif file_header.type == "particlePosition":
+            data = readParticlePosition(binaryFp,file_header,nValues)
         else:
-            print("Unknown data type: ",fileFormat.type)
+            print("Unknown data type: ",file_header.type)
             sys.exit("Error reading: "+binaryFp.name())
     return data
 
 
-def readASCIIDataBlock(asciiFp,fileFormat : ofFileFormat):
+def readASCIIDataBlock(asciiFp,file_header : FileHeader):
     data = np.zeros(1)
 
     # Number of values to read
@@ -333,23 +333,23 @@ def readASCIIDataBlock(asciiFp,fileFormat : ofFileFormat):
             nValues = int(line)
             break
 
-    if fileFormat.type == "scalar":
-        data = readScalarFieldASCII(asciiFp,fileFormat,nValues)
-    elif fileFormat.type == "label":
-        data = readLabelFieldASCII(asciiFp,fileFormat,nValues)
-    elif fileFormat.type == 'vectorField':       
-        data = readVectorFieldASCII(asciiFp,fileFormat,nValues)
-    elif fileFormat.type == 'faceList':           
-        data = readFaceList(asciiFp,fileFormat,nValues)
-    elif fileFormat.type == "particlePosition":
-        data = readParticlePositionASCII(asciiFp,fileFormat,nValues)
+    if file_header.type == "scalar":
+        data = readScalarFieldASCII(asciiFp,file_header,nValues)
+    elif file_header.type == "label":
+        data = readLabelFieldASCII(asciiFp,file_header,nValues)
+    elif file_header.type == 'vectorField':       
+        data = readVectorFieldASCII(asciiFp,file_header,nValues)
+    elif file_header.type == 'faceList':           
+        data = readFaceList(asciiFp,file_header,nValues)
+    elif file_header.type == "particlePosition":
+        data = readParticlePositionASCII(asciiFp,file_header,nValues)
     else:
-        print("Unknown data type: ",fileFormat.type)
+        print("Unknown data type: ",file_header.type)
         sys.exit("Error reading: "+asciiFp.name())
     return data
 
 
-def readASCIIInternalField(asciiFp, file_format : ofFileFormat):
+def readASCIIInternalField(asciiFp, file_format : FileHeader):
     """Read the internal field of a volField"""
     data = np.zeros(1)
     for line in asciiFp:
@@ -376,7 +376,7 @@ def readASCIIInternalField(asciiFp, file_format : ofFileFormat):
     return data
 
 
-def readBinaryInternalField(binaryFp, file_format : ofFileFormat):
+def readBinaryInternalField(binaryFp, file_format : FileHeader):
     """
     Read the ASCII header up to the internalField line from the binary file object `binaryFp`.
     This function uses binaryFp.readline() to avoid TextIOWrapper read-ahead buffering.

@@ -222,7 +222,7 @@ class MapParticleToPlane:
         mesh.save(filename)
         
         
-    def map(self,pos,val):
+    def map(self,pos,val,**kwargs):
         """Map the value of the particles to the plane
 
         Parameters
@@ -233,6 +233,9 @@ class MapParticleToPlane:
         val : numpy array
             Value field of of the particle, e.g., the diameter to map to the 
             plane
+        normalize : bool
+            By default True
+            Normalize the results for each cell
 
         Examples:
         ------
@@ -251,6 +254,11 @@ class MapParticleToPlane:
         mapper.map(pos,val)
         
         """
+
+        normalize = True
+
+        if 'normalize' in kwargs and kwargs['normalize'] == False:
+            normalize = False
 
         if len(pos) != len(val):
             raise ValueError("Position and value array do not match in size")
@@ -274,7 +282,8 @@ class MapParticleToPlane:
             self._triValues[triIndex] += v
             counts[triIndex] +=1
         
-        self._triValues /=counts
+        if normalize:
+            self._triValues /=counts
 
         # Set the field for the interpolation method
         self._triInterp.setField(self._triValues)

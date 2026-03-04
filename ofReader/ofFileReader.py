@@ -14,7 +14,7 @@ from tqdm import tqdm
 import sys
 import os
 import re
-from ofReader.ofFileFormat import ofFileFormat
+from ofReader.fileHeader import FileHeader
 from ofReader.ofBoundaryData import ofBoundaryData
 from ofReader.ofvolField import ofVolField
 from ofReader.ofReadSupportFunctions import *
@@ -58,34 +58,34 @@ def readOpenFOAMFile(filePath,**kwargs):
             kwargs.pop('decomposed')
 
     if not decomposed:
-        fileFormat = ofFileFormat()
-        fileFormat.readFile(filePath)
+        file_header = FileHeader()
+        file_header.readFile(filePath)
 
         data = np.zeros(1)
 
-        if fileFormat.format == "binary":
+        if file_header.format == "binary":
             with open(filePath, mode='rb') as binaryFp:
-                if fileFormat.fieldType == "volField":
-                    data = readBinaryInternalField(binaryFp,fileFormat)
-                    boundary_data.read(binaryFp,fileFormat)
+                if file_header.fieldType == "volField":
+                    data = readBinaryInternalField(binaryFp,file_header)
+                    boundary_data.read(binaryFp,file_header)
                     field = ofVolField()
                     field.internal_data = data
                     field.boundary = boundary_data
                     return field
                 else:
-                    data = readBinaryDataBlock(binaryFp,fileFormat)
+                    data = readBinaryDataBlock(binaryFp,file_header)
                     return data
-        elif fileFormat.format == "ASCII":
+        elif file_header.format == "ASCII":
             with open(filePath, encoding='utf-8', errors='ignore') as asciiFp:
-                if fileFormat.fieldType == "volField":
-                    data = readASCIIInternalField(asciiFp,fileFormat)
-                    boundary_data.read(asciiFp,fileFormat)
+                if file_header.fieldType == "volField":
+                    data = readASCIIInternalField(asciiFp,file_header)
+                    boundary_data.read(asciiFp,file_header)
                     field = ofVolField()
                     field.internal_data = data
                     field.boundary = boundary_data
                     return field
                 else:
-                    data = readASCIIDataBlock(asciiFp,fileFormat)
+                    data = readASCIIDataBlock(asciiFp,file_header)
                     return data
         else:
             print("File format is undefined")
@@ -109,13 +109,13 @@ def readOpenFOAMFile(filePath,**kwargs):
             data = np.zeros(1)
             filePath = f'{casePath}/processor0/{time:g}/{fileName}'
 
-            fileFormat = ofFileFormat()
-            fileFormat.readFile(filePath)
+            file_header = offile_header()
+            file_header.readFile(filePath)
 
-            if fileFormat.format == "ASCII":
-                data = readASCIIDataBlock(filePath,fileFormat)
-            elif fileFormat.format == "binary":
-                data = readBinaryDataBlock(filePath,fileFormat)
+            if file_header.format == "ASCII":
+                data = readASCIIDataBlock(filePath,file_header)
+            elif file_header.format == "binary":
+                data = readBinaryDataBlock(filePath,file_header)
             else:
                 print("File format is undefined")
                 sys.exit("Error reading: "+filePath)
@@ -124,13 +124,13 @@ def readOpenFOAMFile(filePath,**kwargs):
             for n in range(1,nProcs):
                 filePath = f'{casePath}/processor{n:g}/{time:g}/{fileName}'
 
-                fileFormat = ofFileFormat()
-                fileFormat.readFile(filePath)
+                file_header = offile_header()
+                file_header.readFile(filePath)
 
-                if fileFormat.format == "ASCII":
-                    data1 = readASCIIDataBlock(filePath,fileFormat)
-                elif fileFormat.format == "binary":
-                    data1 = readBinaryDataBlock(filePath,fileFormat)
+                if file_header.format == "ASCII":
+                    data1 = readASCIIDataBlock(filePath,file_header)
+                elif file_header.format == "binary":
+                    data1 = readBinaryDataBlock(filePath,file_header)
                 else:
                     print("File format is undefined")
                     sys.exit("Error reading: "+filePath)
